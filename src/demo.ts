@@ -43,7 +43,7 @@ export const demoPage = (origin: string, apiKey: string) => /* html */ `<!doctyp
   .pill.held { color: var(--hold); border-color: #5b4a8c; }
   .pill.cancelled { color: var(--mute); }
   .log { max-height: 360px; overflow: auto; font-size: 12px; }
-  .log div { padding: 4px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 52px 1fr 40px 48px; gap: 8px; }
+  .log div { padding: 4px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 48px 1fr 36px 64px; gap: 8px; }
   .log .s2 { color: var(--ok); } .log .s4 { color: var(--bad); } .log .s5 { color: var(--bad); }
   .note { color: var(--mute); font-size: 12px; }
   .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; }
@@ -143,6 +143,7 @@ async function api(method, path, body, headers = {}) {
   return { status: res.status, json, replayed: res.headers.get("idempotent-replayed") === "true" };
 }
 
+const local = (iso) => new Date(iso).toLocaleString("en-GB", { timeZone: state.resource.timezone, weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 function monday(d) { const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x; }
 const ymd = (d) => d.toISOString().slice(0, 10);
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
@@ -185,7 +186,7 @@ async function loadGrid() {
 async function loadBookings() {
   const b = await api("GET", "/v1/bookings?resource_id=" + state.resource.id);
   if (b.status !== 200) return;
-  $("#bookings").innerHTML = b.json.slice(0, 8).map((x) => '<div class="row"><span><span class="mono">' + x.starts_at.slice(0, 16).replace("T", " ") + 'Z</span> · ' + (x.customer_name ?? "") + '</span><span style="display:flex;gap:6px;align-items:center"><span class="pill ' + x.status + '">' + x.status + '</span>' + (x.status === "held" ? '<button class="ghost" data-confirm="' + x.id + '">Confirm</button>' : "") + (x.status !== "cancelled" ? '<button class="ghost" data-cancel="' + x.id + '">Cancel</button>' : "") + '</span></div>').join("") || '<p class="note">No bookings yet.</p>';
+  $("#bookings").innerHTML = b.json.slice(0, 8).map((x) => '<div class="row"><span><span class="mono">' + local(x.starts_at) + '</span> · ' + (x.customer_name ?? "") + '</span><span style="display:flex;gap:6px;align-items:center"><span class="pill ' + x.status + '">' + x.status + '</span>' + (x.status === "held" ? '<button class="ghost" data-confirm="' + x.id + '">Confirm</button>' : "") + (x.status !== "cancelled" ? '<button class="ghost" data-cancel="' + x.id + '">Cancel</button>' : "") + '</span></div>').join("") || '<p class="note">No bookings yet.</p>';
   $("#bookings").querySelectorAll("[data-confirm]").forEach((el) => el.onclick = async () => { await api("POST", "/v1/bookings/" + el.dataset.confirm + "/confirm"); loadGrid(); });
   $("#bookings").querySelectorAll("[data-cancel]").forEach((el) => el.onclick = async () => { await api("POST", "/v1/bookings/" + el.dataset.cancel + "/cancel"); loadGrid(); });
 }

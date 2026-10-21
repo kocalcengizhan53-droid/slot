@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "slot",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "slot-db",
+      "database_id": "193ce439-748e-4413-b0eb-5cbadfea7d2a",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Per-key limit: sixty requests a minute. Keyed on the API key, so one tenant's burst
+  // never slows another's.
+  "ratelimits": [
+    { "name": "API_RATE", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }
+  ],
+  // Expire holds and retry webhook deliveries.
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "vars": {
+    "DEMO_API_KEY": "demo_sk_live_tilt_2026",
+    "DEMO_PAYMENT_SECRET": "whsec_demo_2026"
+  }
+}

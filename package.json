@@ -1,0 +1,43 @@
+{
+  "name": "slot",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "npm run migrate:remote && wrangler deploy --minify",
+    "typecheck": "wrangler types >/dev/null && tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,json,md,sql}\"",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "migrate:local": "wrangler d1 migrations apply slot-db --local",
+    "migrate:remote": "wrangler d1 migrations apply slot-db --remote",
+    "seed:local": "wrangler d1 execute slot-db --local --file=scripts/seed.sql",
+    "seed:remote": "wrangler d1 execute slot-db --remote --file=scripts/seed.sql",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.6.3",
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
+    "@cloudflare/workers-types": "^5.20261021.1",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.110.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.15.0 || >=26.0.0",
+      "onFail": "error"
+    }
+  }
+}

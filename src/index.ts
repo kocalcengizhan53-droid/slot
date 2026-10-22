@@ -41,9 +41,17 @@ app.use(
   cors({
     origin: "*",
     allowHeaders: ["Authorization", "Content-Type", "Idempotency-Key", "X-Provider-Signature"],
-    exposeHeaders: ["Idempotent-Replayed", "Retry-After"],
+    exposeHeaders: ["Idempotent-Replayed", "Retry-After", "Server-Timing"],
   }),
 );
+
+// How long the Worker itself took, on every response, so a client can tell server time from
+// the network's. Readable in devtools and in the playground's request log.
+app.use("*", async (c, next) => {
+  const t0 = performance.now();
+  await next();
+  c.res.headers.set("Server-Timing", `app;dur=${(performance.now() - t0).toFixed(1)}`);
+});
 
 app.get("/health", (c) => c.json({ ok: true, now: new Date().toISOString() }));
 

@@ -43,7 +43,7 @@ export const demoPage = (origin: string, apiKey: string) => /* html */ `<!doctyp
   .pill.held { color: var(--hold); border-color: #5b4a8c; }
   .pill.cancelled { color: var(--mute); }
   .log { max-height: 360px; overflow: auto; font-size: 12px; }
-  .log div { padding: 4px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 48px 1fr 36px 64px; gap: 8px; }
+  .log div { padding: 4px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 48px 1fr 36px 72px; gap: 8px; }
   .log .s2 { color: var(--ok); } .log .s4 { color: var(--bad); } .log .s5 { color: var(--bad); }
   .note { color: var(--mute); font-size: 12px; }
   .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; }
@@ -138,7 +138,8 @@ async function api(method, path, body, headers = {}) {
   const ms = Math.round(performance.now() - t0);
   const json = res.status === 204 ? null : await res.json();
   const row = document.createElement("div");
-  row.innerHTML = '<span class="mono">' + method + '</span><span class="mono">' + path + '</span><span class="mono s' + String(res.status)[0] + '">' + res.status + (res.headers.get("idempotent-replayed") ? "↺" : "") + '</span><span class="mono note">' + ms + ' ms</span>';
+  const server = /dur=([\\d.]+)/.exec(res.headers.get("server-timing") ?? "")?.[1];
+  row.innerHTML = '<span class="mono">' + method + '</span><span class="mono">' + path + '</span><span class="mono s' + String(res.status)[0] + '">' + res.status + (res.headers.get("idempotent-replayed") ? "↺" : "") + '</span><span class="mono note" title="total / server">' + ms + (server ? "·" + Math.round(server) : "") + '</span>';
   $("#log").prepend(row);
   return { status: res.status, json, replayed: res.headers.get("idempotent-replayed") === "true" };
 }

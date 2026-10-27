@@ -31,6 +31,8 @@ A reservations API on Cloudflare Workers and D1, with the developer portal a rea
 
 ![API reference generated from the OpenAPI 3.1 document, with request and response examples](docs/reference.webp)
 
+![Status: p50, p95 and p99 server time per endpoint from the latency histograms in D1 (a local run shown)](docs/status.webp)
+
 ## What it does, and how it is sure
 
 **Time, crossed once.** Everything stored is a UTC instant; everything a human types is a wall-clock time in a named zone. [`src/lib/time.ts`](src/lib/time.ts) crosses that gap with `Intl` alone — no offset table to go stale. A slot that does not exist on the day the clocks move is not offered, and a 23- or 25-hour day is a 23- or 25-hour day.

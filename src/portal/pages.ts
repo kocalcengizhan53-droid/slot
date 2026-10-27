@@ -192,11 +192,11 @@ export function guidesBody(origin: string) {
     ["capacity", "Why a slot cannot be oversold"],
   ];
   return `<div class="wrap docs">
-  <aside class="side" aria-label="Guides"><details open><summary>Guides</summary><div class="side-groups"><div><h4>How to</h4>${sections
+  <nav class="side" aria-label="Guides"><div class="side-groups"><div><h4>How to</h4>${sections
     .map(([id, t]) => `<a href="#${id}">${esc(t)}</a>`)
-    .join("")}</div></div></details></aside>
+    .join("")}</div></div></nav>
   <article class="doc prose">
-    <div class="doc-head"><span class="eyebrow">Guides</span><h1 style="font-size:clamp(2rem,4vw,2.8rem)">Using Slot well</h1><p class="lede">The behaviours that matter once real customers are booking: retries, signatures, clocks, pages, limits.</p></div>
+    <div class="doc-head"><span class="eyebrow">Guides</span><h1 style="font-size:clamp(2rem,4vw,2.8rem)">Using Slot well</h1><p class="lede">The behaviours that matter once real customers are booking: retries, signatures, clocks, pages, limits.</p><nav class="chips" aria-label="Sections">${sections.map(([id, t]) => `<a href="#${id}">${esc(t)}</a>`).join("")}</nav></div>
 
     <section><h2 id="sandboxes">Sandboxes and keys</h2>
     <p><code>POST /v1/sandbox</code> needs no key and returns one: <code>sk_test_…</code>, scoped to a tenant that exists for ${SANDBOX_HOURS} hours and is seeded with a small studio's calendar. Send it on every request as <code>Authorization: Bearer sk_test_…</code>. The database stores only its SHA-256, so a lost key cannot be recovered — make a new sandbox.</p>
@@ -307,7 +307,7 @@ export function errorsBody(origin: string) {
     null,
     2,
   );
-  return `<div class="wrap" style="padding:32px 0 80px;display:grid;gap:28px">
+  return `<div class="wrap" style="padding-block:32px 80px;display:grid;gap:28px">
   <div class="doc-head"><span class="eyebrow">Reference · RFC 9457</span><h1 style="font-size:clamp(2rem,4vw,2.8rem)">Errors</h1>
   <p class="lede">Every error is an <code>application/problem+json</code> body. Branch on <code>code</code> — it never changes — and show <code>detail</code> to people. <code>type</code> links to the row below; <code>request_id</code> is the same id as the <code>X-Request-Id</code> header and the log line.</p></div>
   ${codeBlock("json", example, "409 Conflict · application/problem+json")}
@@ -316,7 +316,7 @@ export function errorsBody(origin: string) {
 }
 
 export function statusBody() {
-  return `<div class="wrap" style="padding:32px 0 80px;display:grid;gap:28px">
+  return `<div class="wrap" style="padding-block:32px 80px;display:grid;gap:28px">
   <div class="doc-head"><span class="eyebrow">Status</span><h1 style="font-size:clamp(2rem,4vw,2.8rem)"><span class="dot" aria-hidden="true" style="display:inline-block;width:12px;height:12px;margin-right:12px;vertical-align:middle"></span><span data-status-headline>Checking…</span></h1>
   <p class="lede">Server time is measured inside the Worker on every API request and kept as a histogram per endpoint in five-minute windows. It is the time the API spends — mostly waiting on the database — and leaves out the network between you and the edge, which is measured separately below.</p></div>
   <div class="latency">

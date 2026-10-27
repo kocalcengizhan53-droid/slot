@@ -193,7 +193,7 @@ export function referenceBody(doc: OpenApiDoc, origin: string) {
   <div class="op-head">
     <h3 id="${id}-title">${esc(o.op.summary ?? key)}</h3>
     <div class="op-path"><span class="m ${o.method}">${o.method.toUpperCase()}</span><code>${esc(o.path)}</code>${open ? '<span class="pill">no key</span>' : ""}</div>
-    <span class="lat-badge" data-op="${esc(key)}">live server time <b>—</b></span>
+    <span class="lat-badge" data-op="${esc(key)}"><span>live server time</span><b>—</b></span>
   </div>
   <div class="op-grid">
     <div style="display:grid;gap:14px;min-width:0">
@@ -213,14 +213,13 @@ export function referenceBody(doc: OpenApiDoc, origin: string) {
     .join("");
 
   return `<div class="wrap docs">
-  <aside class="side" aria-label="Endpoints">
-    <details open><summary>Endpoints</summary><div class="side-groups">${side}</div></details>
-  </aside>
+  <nav class="side" aria-label="Endpoints"><div class="side-groups">${side}</div></nav>
   <div class="doc">
     <div class="doc-head">
       <span class="eyebrow">Reference · OpenAPI 3.1</span>
       <h1 style="font-size:clamp(2rem,4vw,2.8rem)">API reference</h1>
       <p class="lede">Every endpoint, generated from the same schemas that validate requests. Each one has a request you can run against your sandbox, and the server time it has taken on real traffic over the last day.</p>
+      <nav class="chips" aria-label="Sections">${groups.map((g) => `<a href="#tag-${g.tag.toLowerCase()}">${esc(g.tag)}</a>`).join("")}</nav>
       <div class="keychip" data-keychip><span>Base URL</span><code>${esc(origin)}/v1</code><span class="muted">·</span><span data-key-status>No sandbox yet — the first Run creates one.</span></div>
     </div>
     ${sections}

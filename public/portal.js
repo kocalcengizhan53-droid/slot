@@ -623,8 +623,8 @@ statusData.then((s) => {
   for (const el of $$("[data-op]")) {
     const op = byOp.get(el.dataset.op);
     el.innerHTML = op
-      ? `live server time <b>p50 ${fmtMs(op.p50)} ms · p95 ${fmtMs(op.p95)} ms</b><span>${fmtCount(op.count)} req · 24 h</span>`
-      : "live server time <b>no requests in 24 h</b>";
+      ? `<span>live server time</span><b>p50 ${fmtMs(op.p50)} ms · p95 ${fmtMs(op.p95)} ms</b><span>${fmtCount(op.count)} req · 24 h</span>`
+      : "<span>live server time</span><b>no requests in 24 h</b>";
   }
 });
 
@@ -643,6 +643,3 @@ if ("IntersectionObserver" in window) {
   );
   $$(".reveal").forEach((el) => io.observe(el));
 } else $$(".reveal").forEach((el) => el.classList.add("in"));
-
-if (matchMedia("(max-width: 960px)").matches)
-  $$(".side details").forEach((d) => d.removeAttribute("open"));

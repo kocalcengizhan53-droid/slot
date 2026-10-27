@@ -191,12 +191,15 @@ section.band { padding: clamp(48px, 7vw, 96px) 0; border-top: 1px solid var(--li
 .code .m.get { color: #4ade80; } .code .m.post { color: #f6c453; } .code .m.put { color: #7cc4ff; } .code .m.delete { color: #f87171; }
 
 /* docs layout */
-.docs { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: clamp(20px, 4vw, 48px); padding: 32px 0 80px; }
+.docs { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: clamp(20px, 4vw, 48px); padding-block: 32px 80px; }
 @media (max-width: 960px) { .docs { grid-template-columns: minmax(0, 1fr); } }
 .side { position: sticky; top: 76px; align-self: start; max-height: calc(100vh - 92px); overflow: auto; display: grid; gap: 18px; padding-right: 6px; }
-@media (max-width: 960px) { .side { position: static; max-height: none; } .side details:not([open]) .side-groups { display: none; } }
-.side summary { cursor: pointer; font-weight: 600; list-style: none; display: none; }
-@media (max-width: 960px) { .side summary { display: flex; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; } }
+.chips { display: none; }
+@media (max-width: 960px) {
+  .side { display: none; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 4px -16px 0; padding: 0 16px; }
+  .chips a { flex: none; font-size: .86rem; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--ink-2); background: var(--panel); }
+}
 .side-groups { display: grid; gap: 18px; }
 .side h4 { font: 600 .72rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); margin-bottom: 8px; }
 .side a { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 7px; text-decoration: none; color: var(--ink-2); font-size: .88rem; }
@@ -214,6 +217,7 @@ section.band { padding: clamp(48px, 7vw, 96px) 0; border-top: 1px solid var(--li
 .op-desc { color: var(--ink-2); }
 .lat-badge { display: inline-flex; gap: 10px; font: .76rem/1 var(--mono); color: var(--mute); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; width: fit-content; }
 .lat-badge b { color: var(--ink); font-weight: 600; }
+.lat-badge { flex-wrap: wrap; row-gap: 4px; border-radius: 12px; } .lat-badge > * { white-space: nowrap; }
 .fields { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .fields h4 { font: 600 .72rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--mute); padding: 10px 12px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
 .field { display: grid; gap: 3px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
@@ -250,7 +254,7 @@ tr:target td { background: var(--accent-soft); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 
 /* playground */
-.pg { display: grid; grid-template-columns: 280px minmax(0, 1fr) 340px; gap: 16px; padding: 24px 0 64px; }
+.pg { display: grid; grid-template-columns: 280px minmax(0, 1fr) 340px; gap: 16px; padding-block: 24px 64px; }
 @media (max-width: 1180px) { .pg { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
 .card h2 { font: 600 .74rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
@@ -267,7 +271,7 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--amber); 
 .slot.free:hover, .slot.free[aria-pressed="true"] { border-color: var(--ok); box-shadow: 0 0 0 2px #4ade8033; }
 .slot.some { background: #f6c45314; color: var(--accent); border-color: #f6c45330; cursor: pointer; }
 .slot.full { background: #f8717112; color: var(--bad); }
-.slot.past { background: transparent; color: var(--mute); opacity: .55; }
+.slot.past { background: transparent; color: var(--mute); border-color: var(--line); }
 .slot.closed { background: transparent; border: 1px dashed var(--line); }
 .slot.pop { animation: pop .5s var(--ease); }
 @keyframes pop { 40% { transform: scale(1.12); } }

@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 
 import { apiKey, type AppEnv } from "./auth";
 import { db } from "./db";
-import { deliverDue, emit } from "./events";
+import { deliverDue, emit, routeSelfDeliveries } from "./events";
 import { flush, flushDue, operationMatcher, purgeLatency, record, summary } from "./latency";
 import { log } from "./log";
 import { notFoundPage as portalNotFound } from "./portal/pages";
@@ -71,6 +71,7 @@ let operationOf: ((method: string, path: string) => string | null) | null = null
  * status page reads; the write happens after the response, at most every ten seconds.
  */
 app.use("*", async (c, next) => {
+  routeSelfDeliveries(c.env);
   const t0 = performance.now();
   const requestId = `req_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
   c.set("requestId", requestId);
@@ -221,6 +222,7 @@ export default {
    * history to a week.
    */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    routeSelfDeliveries(env);
     const d = db(env.DB);
     for (const hold of await d.expiredHolds()) {
       await d.setStatus(hold.id, "cancelled");

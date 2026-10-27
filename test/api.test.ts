@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { sign, verifySignature } from "../src/auth";
 import { sha256 } from "../src/db";
+import { selfRouting } from "../src/events";
 import worker from "../src/index";
 
 /**
@@ -473,6 +474,42 @@ describe("webhooks", () => {
     );
     expect(delivered).toMatchObject({ attempts: 1, last_status: 200, next_attempt_at: null });
 
+    expect((await call(`/v1/webhooks/${hook.id}`, { method: "DELETE" })).status).toBe(204);
+  });
+
+  it("routes only this Worker's own host through SELF; every other receiver goes over the network", async () => {
+    // Cloudflare answers 404 when a Worker fetches its own workers.dev address; the local runtime
+    // does not, so the routing decision is checked here and the production path on the live site.
+    const viaSelf: string[] = [];
+    const self = {
+      fetch: async (url: string) => (viaSelf.push(url), new Response(null, { status: 204 })),
+    } as unknown as Fetcher;
+    const send = selfRouting({ SELF: self, SELF_HOST: "slot.example.workers.dev" });
+    expect(
+      (await send("https://slot.example.workers.dev/demo/sink", { method: "POST" })).status,
+    ).toBe(204);
+    expect((await send("https://receiver.example.com/ok", { method: "POST" })).status).toBe(200);
+    expect(viaSelf).toEqual(["https://slot.example.workers.dev/demo/sink"]);
+  });
+
+  it("delivers to the portal's own test receiver", async () => {
+    const created = await post("/v1/webhooks", {
+      url: `https://${env.SELF_HOST}/demo/sink`,
+      events: ["webhook.test"],
+    });
+    expect(created.status).toBe(201);
+    const hook = (await created.json()) as { id: string };
+    expect((await call(`/v1/webhooks/${hook.id}/test`, { method: "POST" })).status).toBe(202);
+    await settle();
+    const list = (await (await call("/v1/webhooks/deliveries?limit=100")).json()) as List<{
+      webhook_id: string;
+      attempts: number;
+      last_status: number | null;
+    }>;
+    expect(list.data.find((x) => x.webhook_id === hook.id)).toMatchObject({
+      attempts: 1,
+      last_status: 200,
+    });
     expect((await call(`/v1/webhooks/${hook.id}`, { method: "DELETE" })).status).toBe(204);
   });
 });

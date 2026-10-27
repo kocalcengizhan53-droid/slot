@@ -60,6 +60,26 @@ export async function emit(
   }
 }
 
+type Send = (url: string, init: RequestInit) => Promise<Response>;
+let send: Send = (url, init) => fetch(url, init);
+
+/**
+ * Deliveries to this Worker's own host go through its SELF binding: a Worker fetching its own
+ * workers.dev address is answered 404 by Cloudflare, which made the playground's test receiver
+ * unreachable in production. Bindings are the same for every request an isolate serves, so this
+ * is set once, from the request middleware and the cron, before anything is delivered.
+ */
+/** Where a delivery goes: through SELF for this Worker's own host, over the network for any other. */
+export function selfRouting(env: { SELF?: Fetcher; SELF_HOST?: string }): Send {
+  const { SELF: self, SELF_HOST: host } = env;
+  return (url, init) =>
+    self && host && new URL(url).host === host ? self.fetch(url, init) : fetch(url, init);
+}
+
+export function routeSelfDeliveries(env: { SELF?: Fetcher; SELF_HOST?: string }) {
+  send = selfRouting(env);
+}
+
 /** One try at one delivery. Records the outcome and schedules the next try, or stops. */
 export async function attempt(
   d: Db,
@@ -79,7 +99,7 @@ export async function attempt(
     const signature = await sign(delivery.secret, timestamp, delivery.payload);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(delivery.url, {
+    const res = await send(delivery.url, {
       method: "POST",
       headers: {
         "content-type": "application/json",

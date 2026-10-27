@@ -8,6 +8,11 @@
   // The portal's fonts, icons and share image. A request that matches a file is served from
   // the edge without running the Worker.
   "assets": { "directory": "./public" },
+  // Cloudflare will not let a Worker fetch its own workers.dev address on the same account (it
+  // answers 404), so webhooks pointed at the portal's own test receiver go through a binding to
+  // this Worker instead. SELF_HOST says which deliveries those are.
+  "services": [{ "binding": "SELF", "service": "slot" }],
+  "vars": { "SELF_HOST": "slot.kocalcengizhan.workers.dev" },
   "d1_databases": [
     {
       "binding": "DB",

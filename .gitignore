@@ -7,3 +7,6 @@ worker-configuration.d.ts
 .env.*
 !.env.example
 .DS_Store
+
+# Lighthouse and axe gate reports
+qa-output/

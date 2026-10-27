@@ -22,3 +22,32 @@ jobs:
       - run: npm ci
       # typecheck (server and browser code), lint, and the tests inside workerd against a migrated D1
       - run: npm run check
+
+  # The quality gate: axe (WCAG 2.2 AA + best practice, zero violations) and Lighthouse's mobile
+  # profile (median of three runs per page) against the production build.
+  quality:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chrome
+      - run: npm run migrate:local
+      - name: Serve the production build
+        run: |
+          npx wrangler dev --port 8787 --ip 127.0.0.1 > /tmp/serve.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8787/health > /dev/null && exit 0; sleep 1; done
+          cat /tmp/serve.log; exit 1
+      - run: npm run qa:axe
+      - run: npm run qa:lighthouse
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: lighthouse
+          path: qa-output/lighthouse/
+          retention-days: 14

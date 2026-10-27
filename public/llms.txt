@@ -1,0 +1,22 @@
+# Slot
+
+> A reservations API on Cloudflare Workers and D1: resources with weekly hours in their own time zone, slots in UTC, holds that expire, bookings that cannot double-book, idempotent retries, signed webhooks and an idempotent payment hook. Errors are RFC 9457 problem details; lists are cursor-paginated.
+
+## Start here
+
+- [Quickstart](https://slot.kocalcengizhan.workers.dev/): a first booking in six requests
+- [OpenAPI 3.1 document](https://slot.kocalcengizhan.workers.dev/openapi.json): the contract, generated from the routes' own schemas
+- [API reference](https://slot.kocalcengizhan.workers.dev/docs/reference)
+- [Guides](https://slot.kocalcengizhan.workers.dev/docs/guides): sandboxes and keys, retrying safely, verifying webhooks, time zones, pagination, limits, reading your own writes
+- [Errors](https://slot.kocalcengizhan.workers.dev/docs/errors): every problem type with its meaning and fix
+
+## Trying it
+
+`POST /v1/sandbox` returns a private API key and a seeded sandbox that lasts 24 hours. Everything under `/v1` takes `Authorization: Bearer <key>` and allows 60 requests a minute per key.
+
+- [Playground](https://slot.kocalcengizhan.workers.dev/playground)
+- [Status](https://slot.kocalcengizhan.workers.dev/status): p50, p95 and p99 server time per endpoint ([JSON](https://slot.kocalcengizhan.workers.dev/status.json))
+
+## Source
+
+- [GitHub](https://github.com/kocalcengizhan53-droid/slot)

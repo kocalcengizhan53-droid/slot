@@ -9,4 +9,6 @@ export default tseslint.config(
   { languageOptions: { globals: { ...globals.serviceworker, ...globals.node } } },
   // The portal's browser scripts, served as they are from public/.
   { files: ["public/**/*.js"], languageOptions: { globals: globals.browser, sourceType: "module" } },
+  // The quality gate runs in Node and hands callbacks to the browser through Playwright.
+  { files: ["qa/**/*.mjs"], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
 );

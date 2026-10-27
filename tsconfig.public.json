@@ -1,0 +1,19 @@
+{
+  // Type-checks the portal's browser scripts, which ship as plain JavaScript.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": [],
+    "skipLibCheck": true,
+    // Untyped on purpose: this catches unknown names, wrong DOM members and bad imports, not missing annotations.
+    "strict": false,
+    "noImplicitAny": false,
+    "paths": { "/portal.js": ["./public/portal.js"] }
+  },
+  "include": ["public/*.js"]
+}

@@ -1,5 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
+import { webhookUrlProblem } from "./lib/url";
+
 /**
  * The shapes on the wire, once, with the examples the docs show. Every route reads and
  * writes these, so the OpenAPI document and the validation are the same object.
@@ -18,33 +20,19 @@ export const LocalDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .openapi({ example: "2026-10-23" });
 
-export const ErrorBody = z
-  .object({
-    error: z.object({
-      code: z.string().openapi({ example: "full" }),
-      message: z.string().openapi({ example: "That slot has no capacity left." }),
-    }),
-  })
-  .openapi("Error");
-
 export const ResourceSchema = z
   .object({
     id: Id,
     name: z.string().openapi({ example: "Room A — recording" }),
-    timezone: z
-      .string()
-      .openapi({
-        example: "Europe/Istanbul",
-        description: "IANA zone the availability rules are written in",
-      }),
+    timezone: z.string().openapi({
+      example: "Europe/Istanbul",
+      description: "IANA zone the availability rules are written in",
+    }),
     slot_minutes: z.number().int().openapi({ example: 60 }),
-    capacity: z
-      .number()
-      .int()
-      .openapi({
-        example: 1,
-        description: "Bookings that may overlap. A room is 1; a class with ten places is 10.",
-      }),
+    capacity: z.number().int().openapi({
+      example: 1,
+      description: "Bookings that may overlap. A room is 1; a class with ten places is 10.",
+    }),
     created_at: Instant,
   })
   .openapi("Resource");
@@ -118,25 +106,19 @@ export const NewBooking = z
     customer_name: z.string().min(1).max(120).openapi({ example: "Deniz Aksoy" }),
     customer_email: z.string().email().optional().openapi({ example: "deniz@example.com" }),
     notes: z.string().max(500).optional(),
-    hold: z
-      .boolean()
-      .default(false)
-      .openapi({
-        description: "Hold the slot instead of confirming it. A hold expires unless confirmed.",
-      }),
+    hold: z.boolean().default(false).openapi({
+      description: "Hold the slot instead of confirming it. A hold expires unless confirmed.",
+    }),
     hold_minutes: z.number().int().min(1).max(60).default(10),
   })
   .openapi("NewBooking");
 
 export const PaymentEvent = z
   .object({
-    provider_ref: z
-      .string()
-      .min(1)
-      .openapi({
-        example: "pay_7Qx9k2",
-        description: "The provider's own id; a replay with the same ref changes nothing",
-      }),
+    provider_ref: z.string().min(1).openapi({
+      example: "pay_7Qx9k2",
+      description: "The provider's own id; a replay with the same ref changes nothing",
+    }),
     booking_id: Id,
     amount_minor: z.number().int().min(0).openapi({ example: 12000 }),
     currency: z.string().length(3).openapi({ example: "GBP" }),
@@ -156,8 +138,19 @@ export const WebhookSchema = z
 
 export const NewWebhook = z
   .object({
-    url: z.string().url().openapi({ example: "https://example.com/hooks/slot" }),
-    events: z.array(z.string()).min(1).default(["*"]),
+    url: z
+      .string()
+      .max(2000)
+      .superRefine((url, ctx) => {
+        const problem = webhookUrlProblem(url);
+        if (problem) ctx.addIssue({ code: "custom", message: `The webhook URL ${problem}.` });
+      })
+      .openapi({
+        example: "https://example.com/hooks/slot",
+        description:
+          "HTTPS on port 443 to a public host name; IP addresses and private names are refused",
+      }),
+    events: z.array(z.string()).min(1).max(10).default(["*"]),
   })
   .openapi("NewWebhook");
 
@@ -174,3 +167,21 @@ export const DeliverySchema = z
     created_at: Instant,
   })
   .openapi("Delivery");
+
+export const SandboxSchema = z
+  .object({
+    api_key: z.string().openapi({ example: "sk_test_6f1d0c8e2b7a4f3e9d5c1b0a8e7f6d5c" }),
+    payment_secret: z
+      .string()
+      .openapi({ description: "Signs the simulated payment provider's events for this sandbox" }),
+    tenant_id: Id,
+    expires_at: Instant,
+    resources: z.array(z.object({ id: Id, name: z.string(), timezone: z.string() })),
+    limits: z.object({
+      resources: z.number().int(),
+      bookings: z.number().int(),
+      webhooks: z.number().int(),
+      deliveries: z.number().int(),
+    }),
+  })
+  .openapi("Sandbox");

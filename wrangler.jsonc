@@ -5,6 +5,9 @@
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // The portal's fonts, icons and share image. A request that matches a file is served from
+  // the edge without running the Worker.
+  "assets": { "directory": "./public" },
   "d1_databases": [
     {
       "binding": "DB",
@@ -13,15 +16,12 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Per-key limit: sixty requests a minute. Keyed on the API key, so one tenant's burst
-  // never slows another's.
   "ratelimits": [
-    { "name": "API_RATE", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }
+    // Per key: sixty requests a minute, so one tenant's burst never slows another's.
+    { "name": "API_RATE", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
+    // Per address: ten new sandboxes a minute.
+    { "name": "SANDBOX_RATE", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
   ],
-  // Expire holds and retry webhook deliveries.
-  "triggers": { "crons": ["*/5 * * * *"] },
-  "vars": {
-    "DEMO_API_KEY": "demo_sk_live_tilt_2026",
-    "DEMO_PAYMENT_SECRET": "whsec_demo_2026"
-  }
+  // Expire holds, retry webhook deliveries, delete old sandboxes, idempotency keys and latency.
+  "triggers": { "crons": ["*/5 * * * *"] }
 }

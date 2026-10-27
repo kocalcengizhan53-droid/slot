@@ -1,6 +1,8 @@
 import { sign } from "./auth";
 import { id, type Db } from "./db";
 import { iso } from "./lib/time";
+import { log } from "./log";
+import { SANDBOX_LIMITS } from "./sandbox";
 
 /**
  * Outgoing webhooks: an event is written to every matching endpoint's queue, delivered at
@@ -32,6 +34,15 @@ export async function emit(
     const events = JSON.parse(w.events) as string[];
     return events.includes("*") || events.includes(event);
   });
+  if (hooks.length === 0) return;
+  // A sandbox is a public toy: cap how many requests it can make the server send.
+  if (
+    hooks[0].tenant_kind === "sandbox" &&
+    ((await d.countDeliveries(tenantId)) ?? 0) + hooks.length > SANDBOX_LIMITS.deliveries
+  ) {
+    log("warn", "sandbox delivery quota reached", { tenant: tenantId, event });
+    return;
+  }
   const payload = JSON.stringify({ id: id("evt"), event, created_at: iso(new Date()), data });
   for (const hook of hooks) {
     const deliveryId = id("dlv");

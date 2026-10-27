@@ -20,5 +20,5 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # typecheck, lint, and 36 tests inside workerd against a migrated D1
+      # typecheck (server and browser code), lint, and the tests inside workerd against a migrated D1
       - run: npm run check

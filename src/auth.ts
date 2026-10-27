@@ -1,13 +1,22 @@
 import type { Context, MiddlewareHandler } from "hono";
 
-import { db, sha256, type Db, type Tenant } from "./db";
+import { now, sha256, type Db, type Tenant } from "./db";
+import { problemBody, problem } from "./problem";
 
 /**
  * Who is calling, how often, and whether we have seen this exact request before.
  */
 
-export type Vars = { tenant: Tenant; db: Db };
+export type Vars = { tenant: Tenant; db: Db; requestId: string };
 export type AppEnv = { Bindings: Env; Variables: Vars };
+
+/**
+ * Key hash → tenant, remembered for half a minute per isolate. Most requests then skip the
+ * lookup entirely; a deleted sandbox can answer for at most thirty seconds more, with no data
+ * left behind it to read.
+ */
+const TENANTS = new Map<string, { tenant: Tenant; until: number }>();
+const TENANT_TTL_MS = 30_000;
 
 /**
  * Bearer API key → tenant. The key is hashed and looked up; the hash is the only thing the
@@ -16,43 +25,44 @@ export type AppEnv = { Bindings: Env; Variables: Vars };
 export const apiKey: MiddlewareHandler<AppEnv> = async (c, next) => {
   const header = c.req.header("authorization") ?? "";
   const key = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  if (!key) {
-    return c.json(
-      { error: { code: "unauthorized", message: "Send the API key as a Bearer token." } },
-      401,
-    );
-  }
-  const d = db(c.env.DB);
-  const tenant = await d.tenantByKeyHash(await sha256(key));
+  if (!key) return problem(c, 401, "unauthorized", "Send the API key as a Bearer token.");
+  const hash = await sha256(key);
+  const d = c.get("db");
+  const cached = TENANTS.get(hash);
+  let tenant = cached && cached.until > Date.now() ? cached.tenant : null;
   if (!tenant) {
-    return c.json({ error: { code: "unauthorized", message: "That API key is not known." } }, 401);
+    tenant = await d.tenantByKeyHash(hash);
+    if (tenant) TENANTS.set(hash, { tenant, until: Date.now() + TENANT_TTL_MS });
+  }
+  if (!tenant) return problem(c, 401, "unauthorized", "That API key is not known.");
+  if (tenant.expires_at !== null && tenant.expires_at <= now()) {
+    TENANTS.delete(hash);
+    return problem(
+      c,
+      401,
+      "sandbox_expired",
+      "This sandbox has expired. Create a new one: POST /v1/sandbox.",
+    );
   }
 
   // Sixty a minute per key. The limiter is a Workers binding; nothing to run or scale.
   const { success } = await c.env.API_RATE.limit({ key: tenant.id });
   if (!success) {
     c.header("Retry-After", "60");
-    return c.json(
-      {
-        error: {
-          code: "rate_limited",
-          message: "Sixty requests a minute per key. Try again shortly.",
-        },
-      },
-      429,
-    );
+    return problem(c, 429, "rate_limited", "Sixty requests a minute per key. Try again shortly.");
   }
 
   c.set("tenant", tenant);
-  c.set("db", d);
   await next();
 };
 
 /**
- * Idempotency for writes. With an `Idempotency-Key` header, the first response to a request
- * is stored under the key and every repeat gets it back — the same status, the same body,
- * the same booking id — so a client that retried a timed-out POST does not book twice. The
- * same key with a different body is a 422: that is not a retry, it is a mistake.
+ * Idempotency for writes. With an `Idempotency-Key` header, the first request claims the key
+ * before it runs and stores its response under it; every repeat gets that response back — the
+ * same status, the same body, the same booking id — so a client that retried a timed-out POST
+ * does not book twice. A repeat that arrives while the first is still running is a 409, not a
+ * second execution. The same key with a different body is a 422: that is not a retry, it is a
+ * mistake. Keys are kept for a day.
  */
 export type Reply = { status: number; body: unknown; replayed?: boolean };
 
@@ -65,24 +75,41 @@ export async function idempotent(
   const d = c.get("db");
   const tenant = c.get("tenant");
   const requestHash = await sha256(`${c.req.method} ${c.req.path} ${await c.req.text()}`);
-  const seen = await d.idempotent(tenant.id, key);
-  if (seen) {
-    if (seen.request_hash !== requestHash) {
+  if (!(await d.claimIdempotency(tenant.id, key, requestHash))) {
+    const seen = await d.idempotency(tenant.id, key);
+    if (seen && seen.request_hash !== requestHash) {
       return {
         status: 422,
-        body: {
-          error: {
-            code: "idempotency_mismatch",
-            message: "This Idempotency-Key was used with a different request.",
-          },
-        },
+        body: problemBody(
+          c,
+          422,
+          "idempotency_mismatch",
+          "This Idempotency-Key was used with a different request.",
+        ),
+      };
+    }
+    if (!seen || seen.response_status === null || seen.response_body === null) {
+      return {
+        status: 409,
+        body: problemBody(
+          c,
+          409,
+          "idempotency_in_progress",
+          "The first request with this key has not finished. Retry in a moment.",
+        ),
       };
     }
     return { status: seen.response_status, body: JSON.parse(seen.response_body), replayed: true };
   }
-  const r = await handler();
-  await d.rememberIdempotent(tenant.id, key, requestHash, r.status, JSON.stringify(r.body));
-  return r;
+  try {
+    const r = await handler();
+    await d.completeIdempotency(tenant.id, key, r.status, JSON.stringify(r.body));
+    return r;
+  } catch (e) {
+    // Nothing was stored, so the key is free for a genuine retry.
+    await d.releaseIdempotency(tenant.id, key);
+    throw e;
+  }
 }
 
 /** HMAC-SHA256 over `${timestamp}.${body}`, hex — the signature on every outgoing webhook. */

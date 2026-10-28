@@ -20,7 +20,9 @@ export type EventName =
   | "webhook.test";
 
 /** Minutes until the next try, by attempt number: 1, 5, 30, 120, 720, then give up. */
-const BACKOFF_MINUTES = [1, 5, 30, 120, 720];
+export const BACKOFF_MINUTES = [1, 5, 30, 120, 720];
+/** How long a receiver has to answer before the attempt counts as failed. */
+export const ATTEMPT_TIMEOUT_MS = 8000;
 
 export async function emit(
   d: Db,
@@ -98,7 +100,7 @@ export async function attempt(
   try {
     const signature = await sign(delivery.secret, timestamp, delivery.payload);
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    const timer = setTimeout(() => controller.abort(), ATTEMPT_TIMEOUT_MS);
     const res = await send(delivery.url, {
       method: "POST",
       headers: {

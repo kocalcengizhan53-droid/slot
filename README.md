@@ -4,13 +4,16 @@ A reservations API on Cloudflare Workers and D1, with the developer portal a rea
 
 **Live:** <https://slot.kocalcengizhan.workers.dev> — the portal; the API is under `/v1`, the contract at [`/openapi.json`](https://slot.kocalcengizhan.workers.dev/openapi.json).
 
+**For your product:** the backend for your booking, scheduling or appointments app — availability across time zones, holds and payments, webhooks your other systems can trust, and documentation your customers' developers can start from on day one.
+
 ![The portal: "Bookings that cannot double-book" — five simultaneous requests for one place, exactly one 201 and four 409s, with a button to race them for real on your sandbox](docs/portal.webp)
 
 ## In three seconds
 
 - **Bookings that cannot double-book**, holds that expire, retries that never book twice, signed webhooks that retry until they land — and the races are tested at the database, not assumed.
 - **A portal, not a Swagger page:** quickstart in six requests, OpenAPI 3.1 reference with copy-ready code, RFC 9457 error catalogue, p50/p95/p99 status from real traffic, and a playground where every click is a request in a visible log.
-- **Safe to leave public:** every visitor gets a private sandbox that expires in 24 hours; webhook URLs are checked for SSRF; rate limits per key and per IP. Lighthouse mobile **100** on all five portal pages, **62 tests** inside workerd.
+- **The invisible parts, made visible:** the home page measures your own round trip to the edge as you read it, packet by packet into a histogram, and plays one webhook through a receiver that fails as often as you choose — on the retry schedule the cron actually uses, read from the same constant.
+- **Safe to leave public:** every visitor gets a private sandbox that expires in 24 hours; webhook URLs are checked for SSRF; rate limits per key and per IP. Lighthouse mobile **100** on all five portal pages, **65 tests** inside workerd.
 
 ---
 

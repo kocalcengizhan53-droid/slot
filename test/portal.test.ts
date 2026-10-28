@@ -1,6 +1,7 @@
 import { SELF } from "cloudflare:test";
 import { expect, it } from "vitest";
 
+import { ATTEMPT_TIMEOUT_MS, BACKOFF_MINUTES } from "../src/events";
 import { PROBLEM_CODES } from "../src/problem";
 import { ERROR_DOCS } from "../src/portal/errors";
 import { slug } from "../src/portal/reference";
@@ -69,4 +70,13 @@ it("publishes the last day's server time without a key", async () => {
   expect(s.window_hours).toBe(24);
   expect(typeof s.overall.count).toBe("number");
   expect(Array.isArray(s.operations)).toBe(true);
+});
+
+it("draws the retry timeline from the schedule the cron uses", async () => {
+  const page = await html("/");
+  const attr = /data-backoff="([^"]+)"/.exec(page)?.[1];
+  expect(JSON.parse(attr!.replace(/&quot;/g, '"'))).toEqual(BACKOFF_MINUTES);
+  expect(page).toContain(`data-timeout="${ATTEMPT_TIMEOUT_MS / 1000}"`);
+  expect(page).toContain(`${BACKOFF_MINUTES.length + 1} tries over 14 hours 36 minutes`);
+  for (const script of ["/probe.js", "/retry.js"]) expect(page).toContain(`src="${script}"`);
 });

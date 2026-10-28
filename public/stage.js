@@ -129,4 +129,14 @@ if (flow && race) {
 }
 
 // Loaded as a module; this keeps its top-level names its own.
+
+// The feature cards catch the light where the pointer is.
+for (const card of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(".feature"))) {
+  card.addEventListener("pointermove", (e) => {
+    const box = card.getBoundingClientRect();
+    card.style.setProperty("--mx", `${e.clientX - box.left}px`);
+    card.style.setProperty("--my", `${e.clientY - box.top}px`);
+  });
+}
+
 export {};

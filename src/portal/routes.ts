@@ -40,7 +40,7 @@ export function portalRoutes(openapi: () => OpenApiDoc) {
           path: "/",
           origin,
           body: homeBody(origin),
-          scripts: ["/stage.js", "/zones.js"],
+          scripts: ["/stage.js", "/zones.js", "/probe.js", "/retry.js"],
         }),
       ),
       200,

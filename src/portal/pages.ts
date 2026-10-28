@@ -1,3 +1,4 @@
+import { ATTEMPT_TIMEOUT_MS, BACKOFF_MINUTES } from "../events";
 import { PROBLEM_CODES, problemTitle } from "../problem";
 import { SANDBOX_HOURS, SANDBOX_LIMITS } from "../sandbox";
 import { ERROR_DOCS } from "./errors";
@@ -54,6 +55,11 @@ export function homeBody(origin: string) {
     )
     .join("");
   const S = OPERATION_SPECS;
+  const seconds = ATTEMPT_TIMEOUT_MS / 1000;
+  const tries = BACKOFF_MINUTES.length + 1;
+  const total = BACKOFF_MINUTES.reduce((a, b) => a + b, 0);
+  const span = `${Math.floor(total / 60)} hours ${total % 60} minutes`;
+  const schedule = `${BACKOFF_MINUTES.slice(0, -1).join(", ")} and ${BACKOFF_MINUTES.at(-1)}`;
   return `
 <section class="hero stage">
   <canvas class="slotfield" data-slotfield aria-hidden="true"></canvas>
@@ -170,20 +176,36 @@ export function homeBody(origin: string) {
   </div>
 </section>
 
-<section class="band" aria-labelledby="live-title">
-  <div class="wrap">
-    <div class="band-head">
-      <span class="eyebrow">Measured, not claimed</span>
-      <h2 id="live-title">Server time on real requests, last 24 hours</h2>
-      <p class="lede">Every API request is timed inside the Worker and counted into a histogram in D1. These numbers are read from it; the status page breaks them down by endpoint.</p>
+<section class="band stage" aria-labelledby="live-title">
+  <div class="wrap measured">
+    <div>
+      <div class="band-head">
+        <span class="eyebrow">Measured, not claimed</span>
+        <h2 id="live-title">Server time on real requests, last 24 hours</h2>
+        <p class="lede">Every API request is timed inside the Worker and counted into a histogram in D1. These numbers are read from it; the status page breaks them down by endpoint. Beside them, your own round trip, measured from this page as you read it.</p>
+      </div>
+      <div class="latency">
+        <div class="metric"><span class="k">p50</span><span class="v" data-lat="overall.p50-big">—</span><span class="n">half of requests are faster</span></div>
+        <div class="metric"><span class="k">p95</span><span class="v" data-lat="overall.p95-big">—</span><span class="n">19 in 20 are faster</span></div>
+        <div class="metric"><span class="k">p99</span><span class="v" data-lat="overall.p99-big">—</span><span class="n">the slow tail</span></div>
+        <div class="metric"><span class="k">requests</span><span class="v" data-lat="overall.count">—</span><svg class="spark" data-spark viewBox="0 0 240 44" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+      </div>
+      <p style="margin-top:16px"><a href="/status">Every endpoint on the status page →</a></p>
     </div>
-    <div class="latency">
-      <div class="metric"><span class="k">p50</span><span class="v" data-lat="overall.p50-big">—</span><span class="n">half of requests are faster</span></div>
-      <div class="metric"><span class="k">p95</span><span class="v" data-lat="overall.p95-big">—</span><span class="n">19 in 20 are faster</span></div>
-      <div class="metric"><span class="k">p99</span><span class="v" data-lat="overall.p99-big">—</span><span class="n">the slow tail</span></div>
-      <div class="metric"><span class="k">requests</span><span class="v" data-lat="overall.count">—</span><svg class="spark" data-spark viewBox="0 0 240 44" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+    <div class="probe" data-probe role="group" aria-labelledby="probe-title">
+      <div class="probe-head"><b id="probe-title">Your round trip, measured now</b><span class="mono small muted">GET /health</span></div>
+      <div class="probe-wire" aria-hidden="true"><span class="end">your browser</span><span class="line" data-probe-line></span><span class="end">edge <b data-probe-edge>—</b></span></div>
+      <div class="probe-hist" data-probe-hist aria-hidden="true"></div>
+      <div class="probe-stats">
+        <div><span class="k">round trip, median</span><span class="v" data-probe-rtt>—</span></div>
+        <div><span class="k">fastest</span><span class="v" data-probe-min>—</span></div>
+        <div><span class="k">requests</span><span class="v" data-probe-n>0</span></div>
+      </div>
+      <div class="probe-foot">
+        <p class="small muted" data-probe-note aria-live="polite">Small requests from this page to the nearest edge, one after another, each one timed in your browser.</p>
+        <button class="btn primary sm" type="button" data-probe-run>Send 24 more</button>
+      </div>
     </div>
-    <p style="margin-top:16px"><a href="/status">Every endpoint on the status page →</a></p>
   </div>
 </section>
 
@@ -207,6 +229,29 @@ export function homeBody(origin: string) {
         <p class="small muted">Hours in this London day: <b class="mono" data-tz-hours>24</b> — the day is as long as the clocks make it.</p>
       </div>
       <ul class="tz-clocks" data-tz-clocks aria-label="The same instant in five cities"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="band stage" aria-labelledby="retry-title">
+  <div class="wrap">
+    <div class="band-head">
+      <span class="eyebrow">Webhooks that land</span>
+      <h2 id="retry-title">When the receiver is down</h2>
+      <p class="lede">An event is delivered the moment it happens. If the receiver answers anything but a 2xx, or nothing within ${seconds} seconds, the next try comes ${schedule} minutes after each failure in turn — ${tries} tries over ${span} — and every attempt is a row you can read. Choose how long the receiver stays down.</p>
+    </div>
+    <div class="retry" data-retry data-backoff="${JSON.stringify(BACKOFF_MINUTES)}" data-timeout="${seconds}">
+      <div class="retry-controls" role="group" aria-label="How the receiver behaves">
+        <button type="button" data-fails="0" aria-pressed="false">Up<small>the first try lands</small></button>
+        <button type="button" data-fails="1" aria-pressed="false">A blip<small>fails once</small></button>
+        <button type="button" data-fails="3" aria-pressed="true">A deploy<small>fails three times</small></button>
+        <button type="button" data-fails="5" aria-pressed="false">An outage<small>fails five times</small></button>
+        <button type="button" data-fails="${tries}" aria-pressed="false">Gone<small>never answers</small></button>
+      </div>
+      <div class="retry-track" data-retry-track aria-hidden="true"></div>
+      <ol class="retry-log" data-retry-log aria-label="Attempts"></ol>
+      <p class="retry-out" data-retry-out aria-live="polite"></p>
+      <p class="small muted">Retries are sent by a cron that runs every five minutes, so a retry goes out within five minutes of being due. Each one is signed again with its own timestamp.</p>
     </div>
   </div>
 </section>

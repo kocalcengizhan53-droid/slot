@@ -13,6 +13,28 @@ const ICONS = {
   layers: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>`,
 };
 
+/** The path a booking takes, drawn as it runs: the wires carry packets, the race lights the nodes. */
+function flowDiagram() {
+  const node = (cls: string, title: string, sub: string) =>
+    `<li class="node ${cls}"><b>${title}</b><span>${sub}</span></li>`;
+  const pk = (cls: string, d: number) => `<i class="pk ${cls}" style="--d:${d}"></i>`;
+  const wire = (label: string, packets: string) =>
+    `<li class="wire" aria-hidden="true"><em>${label}</em>${packets}</li>`;
+  return `
+    <figure class="flow" data-flow>
+      <div class="flow-head"><b class="small">How a booking travels</b><span class="eyebrow">live</span></div>
+      <ol class="flow-row" aria-label="A booking's path: five clients, the edge Worker, one D1 statement that admits exactly one, then your signed webhook">
+        ${node("", "5 clients", "same slot, same instant")}
+        ${wire("HTTPS", pk("", 0) + pk("", 1) + pk("", 2))}
+        ${node("edge", "Edge Worker", "Hono, nearest PoP")}
+        ${wire("SQL", pk("", 0.5) + pk("", 1.5) + pk("back", 2.5))}
+        ${node("db", "D1", "one INSERT…WHERE")}
+        ${wire("HMAC", pk("ok", 1))}
+        ${node("hook", "Your webhook", "signed, retried")}
+      </ol>
+    </figure>`;
+}
+
 const step = (title: string, text: string, notes: string[], panel: string, id: string) => `
 <article class="step reveal" id="${id}" data-step>
   <div class="step-text">
@@ -33,15 +55,22 @@ export function homeBody(origin: string) {
     .join("");
   const S = OPERATION_SPECS;
   return `
-<section class="hero">
+<section class="hero stage">
+  <canvas class="slotfield" data-slotfield aria-hidden="true"></canvas>
   <div class="wrap hero-grid">
     <div>
       <span class="eyebrow">Reservations API · Cloudflare Workers + D1</span>
       <h1 style="margin-top:14px">Bookings that <em>cannot</em> double&#8209;book.</h1>
       <p class="lede" style="margin-top:18px">Time zones without an offset table, holds that expire, retries that never book twice, signed webhooks that retry until they land — behind a REST API with an OpenAPI 3.1 contract. Take a key and make your first booking in five minutes.</p>
       <div class="ctas"><a class="btn primary" href="#quickstart">Start the quickstart</a><a class="btn ghost" href="/docs/reference">API reference</a></div>
-      <div class="facts"><span>p95 <b data-lat="overall.p95-ms">—</b> server time, last 24 h</span><span>races tested at the database</span><span>RFC 9457 errors</span><span>cursor pagination</span></div>
+      <div class="live-facts" aria-label="Measured on this API in the last 24 hours">
+        <span><i class="dot" aria-hidden="true"></i>p50 <b data-lat="overall.p50-ms">—</b></span>
+        <span>p95 <b data-lat="overall.p95-ms">—</b></span>
+        <span>requests, 24 h <b data-lat="overall.count">—</b></span>
+      </div>
+      <div class="facts"><span>races tested at the database</span><span>RFC 9457 errors</span><span>cursor pagination</span><span>OpenAPI 3.1</span></div>
     </div>
+    <div class="hero-side">
     <div class="race" data-race data-mode="idle" aria-labelledby="race-title">
       <div class="race-head"><b id="race-title">Five requests, one place</b><span class="m post">POST</span></div>
       <div class="race-slot">
@@ -54,6 +83,8 @@ export function homeBody(origin: string) {
         <p>The capacity check runs inside the insert, as one statement, so exactly one request wins however close together they arrive. Race them for real on your sandbox.</p>
         <button class="btn primary sm" type="button" data-race-run><span class="spin" aria-hidden="true"></span>Race them for real</button>
       </div>
+    </div>
+    ${flowDiagram()}
     </div>
   </div>
 </section>
@@ -156,6 +187,30 @@ export function homeBody(origin: string) {
   </div>
 </section>
 
+<section class="band" aria-labelledby="tz-title">
+  <div class="wrap">
+    <div class="band-head">
+      <span class="eyebrow">Time zones, crossed once</span>
+      <h2 id="tz-title">One booking, every clock</h2>
+      <p class="lede">A resource keeps its hours in its own zone; a booking is one UTC instant. Pick a day and a time in London and see that instant on every clock — including the hour the clocks skip, which Slot never offers, and the hour they repeat, which is two different bookings.</p>
+    </div>
+    <div class="tz" data-tz>
+      <div class="tz-controls">
+        <div class="tz-days" role="group" aria-label="Day in London">
+          <button type="button" data-day="2026-10-20" aria-pressed="true">An ordinary Tuesday<small>20 Oct 2026</small></button>
+          <button type="button" data-day="2026-10-25" aria-pressed="false">Clocks go back<small>25 Oct 2026</small></button>
+          <button type="button" data-day="2027-03-28" aria-pressed="false">Clocks go forward<small>28 Mar 2027</small></button>
+        </div>
+        <label class="tz-time"><span>Local time in London <b class="mono" data-tz-local>09:00</b></span>
+          <input type="range" min="0" max="47" step="1" value="18" data-tz-time aria-describedby="tz-note"></label>
+        <p class="tz-note" id="tz-note" data-tz-note aria-live="polite">One instant: 08:00 UTC.</p>
+        <p class="small muted">Hours in this London day: <b class="mono" data-tz-hours>24</b> — the day is as long as the clocks make it.</p>
+      </div>
+      <ul class="tz-clocks" data-tz-clocks aria-label="The same instant in five cities"></ul>
+    </div>
+  </div>
+</section>
+
 <section class="band" aria-labelledby="features-title">
   <div class="wrap">
     <div class="band-head">
@@ -251,6 +306,21 @@ def verify(secret: str, header: str, raw_body: bytes) -> bool:
     return hmac.compare_digest(expected, parts.get("v1", ""))`,
       "Verify a delivery (Python)",
     )}
+    <div class="verify" data-verify>
+      <div class="verify-head"><b>Try it: sign and verify in your browser</b><span class="eyebrow">WebCrypto · nothing leaves the page</span></div>
+      <div class="verify-grid">
+        <label>Endpoint secret<input class="mono" data-v-secret value="whsec_8c1f0e2b9a7d4c3e" spellcheck="false" autocomplete="off"></label>
+        <label>Timestamp, t<input class="mono" data-v-t inputmode="numeric" spellcheck="false" autocomplete="off"></label>
+        <label class="wide">Raw body<textarea class="mono" data-v-body rows="4" spellcheck="false">{"id":"evt_01","event":"booking.confirmed","data":{"id":"bkg_7f2a","resource_id":"res_room_a"}}</textarea></label>
+      </div>
+      <ol class="verify-steps">
+        <li><span>1 · signed string</span><code data-v-signed>—</code></li>
+        <li><span>2 · HMAC-SHA256, hex</span><code data-v-mac>—</code></li>
+        <li><span>3 · header sent</span><code data-v-header>—</code></li>
+      </ol>
+      <label class="wide">Check a header you received<input class="mono" data-v-check placeholder="t=…,v1=…" spellcheck="false" autocomplete="off"></label>
+      <p class="verify-result" data-v-result aria-live="polite">Change the body by one character and the header stops verifying.</p>
+    </div>
     <p>Answer <code>2xx</code> quickly and do the work afterwards. Anything else is retried at 1, 5, 30, 120 and 720 minutes; every attempt is listed by <code>GET /v1/webhooks/deliveries</code>. Webhook URLs must be HTTPS on port 443 to a public host name: IP addresses in any spelling, single-label hosts and names like <code>.internal</code> or <code>.local</code> are refused.</p></section>
 
     <section><h2 id="time-zones">Time zones</h2>

@@ -547,6 +547,7 @@ if (race) {
       cap.textContent = "1 place";
       cap.classList.remove("taken");
       race.dataset.mode = "live";
+      race.dispatchEvent(new CustomEvent("race", { detail: "start" }));
       for (const lane of lanes) {
         lane.className = "lane waiting";
         lane.querySelector(".res").textContent = "…";
@@ -572,6 +573,7 @@ if (race) {
       cap.textContent =
         wins === 1 ? `taken by client ${results.indexOf(true) + 1}` : `${wins} winners`;
       cap.classList.toggle("taken", wins === 1);
+      race.dispatchEvent(new CustomEvent("race", { detail: wins ? "won" : "lost" }));
       toast(
         wins === 1
           ? "Five requests, one booking. The other four were told the slot is full."
@@ -580,6 +582,7 @@ if (race) {
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e));
     } finally {
+      race.dispatchEvent(new CustomEvent("race", { detail: "done" }));
       button.removeAttribute("aria-busy");
       button.disabled = false;
     }

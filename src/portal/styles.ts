@@ -14,6 +14,15 @@ const LIGHT = `
 export const STYLES = /* css */ `
 @font-face { font-family: "Geist"; src: url(/fonts/geist-5.3.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
 @font-face { font-family: "Geist Mono"; src: url(/fonts/geist-mono-5.3.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+/*
+ * Arial and Courier New stretched to Geist's measure, so the page laid out before the fonts
+ * arrive is the page after: without these, a phone over a real network re-wrapped the hero when
+ * Geist landed (layout shift 0.2). Figures from the font files: average advance over a sample
+ * line at weight 400 and 650, and Geist's ascent and descent rescaled by the same factor.
+ */
+@font-face { font-family: "Geist Fallback"; src: local("Arial"), local("ArialMT"), local("Liberation Sans"); font-weight: 100 549; size-adjust: 105.35%; ascent-override: 95.39%; descent-override: 28%; line-gap-override: 0%; }
+@font-face { font-family: "Geist Fallback"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"); font-weight: 550 900; size-adjust: 103.68%; ascent-override: 96.93%; descent-override: 28.45%; line-gap-override: 0%; }
+@font-face { font-family: "Geist Mono Fallback"; src: local("Courier New"), local("CourierNewPSMT"), local("Liberation Mono"); size-adjust: 100%; ascent-override: 100.5%; descent-override: 29.5%; line-gap-override: 0%; }
 :root {
   --bg: #0a0b0e; --bg-2: #0e1015; --panel: #12141a; --panel-2: #171a21; --line: #22252e; --line-2: #2f3340;
   --ink: #eceef3; --ink-2: #b7bcc9; --mute: #8e94a3; --accent: #f6c453; --accent-soft: #2a2312;
@@ -21,8 +30,8 @@ export const STYLES = /* css */ `
   --code-bg: #0c0e12; --code-line: #1f232c; --code-ink: #d5d9e2; --code-mute: #7d8494;
   --amber: #f6c453; --amber-ink: #1b1505;
   --b-ok: #4ade80; --b-bad: #fca5a5; --b-rp: #c9a8ff;
-  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius: 12px; --ease: cubic-bezier(.2,.7,.2,1);
   color-scheme: dark;
 }

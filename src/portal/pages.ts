@@ -66,7 +66,7 @@ export function homeBody(origin: string) {
       <div class="live-facts" aria-label="Measured on this API in the last 24 hours">
         <span><i class="dot" aria-hidden="true"></i>p50 <b data-lat="overall.p50-ms">—</b></span>
         <span>p95 <b data-lat="overall.p95-ms">—</b></span>
-        <span>requests, 24 h <b data-lat="overall.count">—</b></span>
+        <span>server time, last 24 h</span>
       </div>
       <div class="facts"><span>races tested at the database</span><span>RFC 9457 errors</span><span>cursor pagination</span><span>OpenAPI 3.1</span></div>
     </div>
